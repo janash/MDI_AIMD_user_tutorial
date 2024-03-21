@@ -1,0 +1,52 @@
+code_name: 'MDI_AIMD_Driver'
+docker:
+  image_name: 'mdi/aimd'
+
+  build_image:
+    - apt-get update --fix-missing
+    - apt-get install -y git
+    - pip install cmake
+    - pip install pymdi
+    - pip install mpi4py
+
+    - echo "export PATH=$PATH:/repo/build/MDI_AIMD_Driver/build/MDI_AIMD_Driver" >> ~/.profile
+
+  build_engine:
+    # Obtain a clone of the MDI_AIMD_Driver
+    - |
+      if [ ! -d "build/MDI_AIMD_Driver" ]; then
+        git clone https://github.com/MolSSI-MDI/MDI_AIMD_Driver.git build/MDI_AIMD_Driver
+      fi
+    - mkdir -p /repo/build/MDI_AIMD_Driver/build
+    - cd /repo/build/MDI_AIMD_Driver/build
+    - cmake ..
+    - make
+    - cd /repo
+    - echo export PATH=$PATH:/repo/build/MDI_AIMD_Driver/build/MDI_AIMD_Driver >> ~/.profile
+
+run_scripts:
+  multiple:
+    containers:
+      aimd:
+        image: 'mdi/aimd:dev'
+        script:
+          - echo "Starting AIMD driver"
+          - export PATH=$PATH:/repo/build/MDI_AIMD_Driver/build/MDI_AIMD_Driver
+          - cd simulation_files/working
+          - MDI_AIMD_Driver -mdi "-role DRIVER -name driver -method TCP -port 8021"
+        depends_on:
+          - lammps
+          - qe
+      lammps:
+        image: 'janash/mdi-lammps:slim'
+        script:
+          - rm -rf simulation_files/working && cp -r simulation_files/starting simulation_files/working
+          - cd simulation_files/working
+          - lmp_mpi -mdi "-role ENGINE -name MM -method TCP -port 8021 -hostname aimd" -in lammps.in > lammps.out
+      qe:
+        image: 'janash/mdi-qe:slim'
+        script:
+          - export PATH=$PATH:/repo/build/q-e/MDI/src
+          - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/repo/build/q-e/MDI/build/mdi_build-prefix/src/mdi_build-build/MDI_Library
+          - cd simulation_files/working
+          - qemdi.x -mdi "-role ENGINE -name QM -method TCP -port 8021 -hostname aimd" -in qe.in > qe.out

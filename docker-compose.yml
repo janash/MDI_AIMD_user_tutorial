@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  aimd:
+    image: "mdi/aimd:dev"
+    command: bash -l -c "bash -l /mdi_shared/.mdimechanic/.temp/docker_mdi_0.sh"
+    volumes:
+      - '/home/janash/mid/My_MDI_AIMD:/mdi_shared'
+      - '/home/janash/projects/mdi-tutorials/MDI_Mechanic:/MDI_Mechanic'
+    networks:
+      mdinet:
+        aliases:
+          - aimd
+  lammps:
+    image: "janash/mdi-lammps:slim"
+    command: bash -l -c "bash -l /mdi_shared/.mdimechanic/.temp/docker_mdi_1.sh"
+    volumes:
+      - '/home/janash/mid/My_MDI_AIMD:/mdi_shared'
+      - '/home/janash/projects/mdi-tutorials/MDI_Mechanic:/MDI_Mechanic'
+    networks:
+      mdinet:
+        aliases:
+          - lammps
+  qe:
+    image: "janash/mdi-qe:slim"
+    command: bash -l -c "bash -l /mdi_shared/.mdimechanic/.temp/docker_mdi_2.sh"
+    volumes:
+      - '/home/janash/mid/My_MDI_AIMD:/mdi_shared'
+      - '/home/janash/projects/mdi-tutorials/MDI_Mechanic:/MDI_Mechanic'
+    networks:
+      mdinet:
+        aliases:
+          - qe
+
+networks:
+  mdinet:
+    driver: "bridge"
